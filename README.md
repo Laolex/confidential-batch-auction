@@ -6,7 +6,7 @@
 
 ## Live Demo
 
-**Frontend**: https://confidential-batch-auction.vercel.app *(deploy after setup)*  
+**Frontend**: https://confidential-batch-auction.vercel.app  
 **Contract**: [`0xf6Fe1ce7d93d9F92faa8B997F23cB7a324509554`](https://sepolia.etherscan.io/address/0xf6Fe1ce7d93d9F92faa8B997F23cB7a324509554) on Sepolia
 
 ## What This Is

@@ -8,7 +8,7 @@
 
 Continuous prediction markets are structurally distorted information aggregation systems. Public order flow enables reflexive behavior — visible directional skew creates momentum cascades, copy-trading, and consensus formation loops that corrupt the underlying price discovery function.
 
-**Core contribution**: This paper introduces a batch auction mechanism for prediction markets that enforces directional confidentiality during information formation while preserving verifiable aggregate price discovery. The mechanism, **Confidential Batch Clearing**, eliminates explicit and interpretable pre-trade directional signaling in order flow and aggregate imbalance during the accumulation window, while publishing a single terminal aggregate signal — the **clearing price** — at epoch close.
+**Core contribution**: This paper introduces a batch auction mechanism for prediction markets that enforces directional confidentiality during information formation while preserving verifiable aggregate price discovery. The mechanism, **Confidential Batch Clearing**, eliminates explicit and interpretable pre-trade directional signaling in order flow and aggregate imbalance during the accumulation window, while publishing a single terminal signal — the **clearing price**, a capital-weighted equilibrium pricing signal — at epoch close. Confidentiality applies to allocation state, not participation existence: participant addresses, ETH amounts, and transaction timing remain publicly observable; the directional assignment of each amount does not.
 
 Participants submit sealed bids during fixed epoch windows. The YES/NO split is never visible during accumulation. At epoch close, only the terminal aggregate state is revealed — the first and only public signal about directional flow. Individual sides remain encrypted permanently, with settlement computed via FHE conditional execution (`FHE.select`) rather than plaintext side comparison.
 
@@ -47,6 +47,33 @@ This is pre-trade information leakage in its most direct form. It enables:
 - **Momentum cascades**: visible directional flow creates self-reinforcing price movement
 
 None of this is information about the underlying event. It is information about market participant behavior, and it corrupts the price.
+
+**Figure 1 — Information flow: continuous market vs confidential batch clearing**
+
+```
+CONTINUOUS MARKET                      CONFIDENTIAL BATCH CLEARING
+─────────────────────────────────      ──────────────────────────────────────
+Participant A bids YES                 Participant A bids YES (encrypted)
+    │                                      │
+    ▼                                      ▼
+Public skew updates: 52% YES           Encrypted accumulator: [sealed]
+    │                                      │
+    ▼                                      ▼
+Participant B observes skew            Participant B sees: total volume only
+    │                                      │
+    ▼                                      ▼
+Participant B copies YES bid           Participant B forms independent signal
+    │                                      │
+    ▼                                      ▼
+Skew reinforces: 58% YES               Epoch closes
+    │                                      │
+    ▼                                      ▼
+Reflexive cascade continues            Single terminal reveal: clearingPrice
+    │                                      │
+    ▼                                      ▼
+Price = f(observed behavior)           Price = f(sealed aggregate)
+          ↑ corrupted                            ↑ clean
+```
 
 ### 1.3 Why Existing Solutions Are Insufficient
 
@@ -105,6 +132,47 @@ The mechanism has six phases:
    The bettor's side is never written to plaintext storage.
 ```
 
+**Figure 2 — Epoch lifecycle and FHE decryption paths**
+
+```
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  EPOCH OPEN                                                      │
+  │  createMarket() → yesPool=Enc(0), noPool=Enc(0)                │
+  └───────────────────────────┬─────────────────────────────────────┘
+                              │ [accumulation window]
+              ┌───────────────┼───────────────┐
+              │               │               │
+         placeBet()      placeBet()      placeBet()
+         Enc(side)       Enc(side)       Enc(side)
+         ↓ FHE.select    ↓ FHE.select    ↓ FHE.select
+         yesPool/noPool += encrypted contrib
+              │               │               │
+              └───────────────┴───────────────┘
+                              │
+  ┌───────────────────────────▼─────────────────────────────────────┐
+  │  EPOCH CLOSE  →  resolveMarket(outcome)                         │
+  └───────────────────────────┬─────────────────────────────────────┘
+                              │
+  ┌───────────────────────────▼─────────────────────────────────────┐
+  │  POOL REVEAL (Pattern 3)                                         │
+  │  requestPoolReveal() → makePubliclyDecryptable(yesPool, noPool) │
+  │  KMS signs cleartexts                                            │
+  │  onPoolRevealed() → checkSignatures → clearingPrice published   │
+  └───────────────────────────┬─────────────────────────────────────┘
+                              │  [first public directional signal]
+              ┌───────────────┴───────────────┐
+         requestPayout()              requestPayout()
+         FHE.eq(side, outcome)        FHE.eq(side, outcome)
+         FHE.select(won, payout, 0)   FHE.select(won, 0, 0)
+         makePubliclyDecryptable()    makePubliclyDecryptable()
+              │                               │
+         KMS signs                       KMS signs
+              │                               │
+         onPayoutRevealed()            onPayoutRevealed()
+         ETH transfer ✓                ETH transfer: 0
+         side: never revealed          side: never revealed
+```
+
 ### 2.2 The Key Invariant
 
 > **A bettor's directional choice remains encrypted in perpetuity. Settlement occurs without plaintext side comparison.**
@@ -161,11 +229,11 @@ Confidential batch clearing is architecturally similar to encrypted on-chain vot
 
 **Signal type**: A vote expresses a static preference with equal weight. A bid expresses a capital-weighted belief signal — the contribution to each pool is proportional to stake, not merely presence.
 
-**Incentive structure**: Voting has no financial stake and no equilibrium pricing. Market participants face real capital-at-risk, which disciplines belief revelation (Hayek, 1945; Kyle, 1985).
+**Incentive structure**: Voting has no financial stake and no equilibrium pricing. Market participants face real capital-at-risk, which disciplines belief revelation (Hayek, 1945; Kyle, 1985). Capital commitment transforms preference revelation into economically costly information revelation — the mechanism-theoretic boundary that separates markets from polls.
 
 **Batch timing**: In a vote, batching is a UX choice — all votes have equal weight regardless of timing. In batch clearing, the epoch boundary is a *mechanism* property that determines what information enters the aggregate signal. The epoch close is not cosmetic; it is the point at which information formation terminates.
 
-**Output semantics**: A vote produces a winning option. Batch clearing produces an equilibrium probability estimate — the clearing price — that is a direct function of the capital-weighted directional split. This estimate encodes market-priced information, not preference counts.
+**Output semantics**: A vote produces a winning option. Batch clearing produces a capital-weighted equilibrium pricing signal — the clearing price — that is a direct function of the capital-weighted directional split. This encodes market-priced information, not preference counts.
 
 These distinctions matter for analysis. Results about the confidentiality of voting systems (e.g., anonymity set bounds, coercion resistance) do not transfer directly. The relevant analytic framework is mechanism design under incomplete information, not social choice theory.
 
@@ -185,18 +253,22 @@ $$I_t = \{(a_i, \text{addr}_i) : t_i \leq t\} \cup \{t_{\text{open}}, t_{\text{c
 
 During the epoch, $I_t$ contains only amounts, addresses, and epoch metadata. The directional component $s_i$ is not in $I_t$ for any $t < t_{\text{close}}$.
 
-**Public price signal**: Let $P_t$ denote the publicly-visible directional signal at time $t$.
+**Confidentiality boundary**: Confidentiality applies to *allocation state*, not participation existence. The following are observable to any public observer during the epoch: transaction existence in the mempool, transaction timestamps, participant addresses, ETH amounts, and total volume. The mechanism makes no claim to suppress these. What is not observable is the directional component of each bid — which pool ($s_i$) an amount is allocated to.
 
-- For $t \in [t_{\text{open}}, t_{\text{close}})$: $P_t = \emptyset$ — no directional signal exists
-- At $t = t_{\text{close}}$: $P_{t_{\text{close}}} = f\!\left(\sum_i B_i\right)$ — the clearing price, a function of the sealed aggregate
+**Public directional price signal**: Let $P_t^{\text{dir}}$ denote the publicly-visible directional price information at time $t$.
 
-The clearing price is the **realized market equilibrium probability signal under sealed-bid aggregation**:
+- For $t \in [t_{\text{open}}, t_{\text{close}})$: $P_t^{\text{dir}} = \emptyset$ — no semantically interpretable directional price signal exists
+- At $t = t_{\text{close}}$: $P_{t_{\text{close}}}^{\text{dir}} = f\!\left(\sum_i B_i\right)$ — the clearing price, a function of the sealed aggregate
+
+The clearing price is the **realized capital-weighted equilibrium pricing signal under sealed-bid aggregation**:
 
 $$\text{clearingPrice} = \frac{\sum_{i: s_i = \text{YES}} a_i}{\sum_i a_i} \times 10{,}000 \text{ bp}$$
 
-This is the first and only element of $P_t$ that is non-empty, and it is defined only at epoch close.
+This is an information topology claim — not a probability optimality claim. The clearing price reflects the capital-weighted revealed preference of epoch participants; it does not purport to be a calibrated probability estimate. Calibration, irrational flow, and liquidity constraints are outside the scope of the mechanism's formal guarantees.
 
-**Intra-epoch directional confidentiality**: The mechanism enforces $P_t = \emptyset$ for all $t < t_{\text{close}}$ cryptographically — not by policy.
+This is the first and only element of $P_t^{\text{dir}}$ that is non-empty, and it is defined only at epoch close.
+
+**Intra-epoch directional confidentiality**: The mechanism enforces $P_t^{\text{dir}} = \emptyset$ for all $t < t_{\text{close}}$ cryptographically — not by policy.
 
 ### 3.2 Information Layers
 
@@ -458,7 +530,7 @@ Budish, Cramton, and Shim (2015) demonstrate that continuous limit-order books a
 
 Confidential Batch Clearing extends this reasoning to prediction markets with an additional dimension: **directional confidentiality within the batch window**. The batch structure eliminates timing advantage; the FHE encryption eliminates observational advantage. The two properties are complementary and address distinct attack surfaces.
 
-The stronger claim: in a standard batch auction, participants can still observe the growing order book and form expectations about the clearing price before the window closes. Confidential Batch Clearing removes this residual observational channel — during accumulation, $P_t = \emptyset$. The batch structure eliminates front-running; the FHE layer eliminates momentum formation.
+The stronger claim: in a standard batch auction, participants can still observe the growing order book and form expectations about the clearing price before the window closes. Confidential Batch Clearing removes this residual observational channel — during accumulation, $P_t^{\text{dir}} = \emptyset$. The batch structure eliminates front-running; the FHE layer eliminates momentum formation.
 
 ### 6.2 Relation to Dark Pools
 
@@ -472,11 +544,25 @@ CoW Protocol (Coincidence of Wants) batches trades to find overlapping liquidity
 
 Confidential Batch Clearing is mechanism-centric: the goal is clean information aggregation, not liquidity optimization. The batch structure provides MEV resistance as a secondary property of the epoch window, not as the primary design objective.
 
-### 6.4 Relation to Prior Work on Information Aggregation
+### 6.4 Inter-market Composition
+
+The formal model (Section 3.1) is stated for a single epoch in isolation. When multiple correlated markets operate simultaneously, or when the same participants appear across epochs and markets, additional inference channels open:
+
+**Correlated markets**: If market A ("ETH above $3k Friday") and market B ("ETH above $3.1k Friday") run concurrent epochs, an observer who sees clearing prices on both can construct a tighter posterior on participant behavior than either market alone reveals.
+
+**Repeated participants**: Behavioral fingerprinting across epochs — consistent stake sizes, timing habits, response to news — enables progressive identity reconstruction independent of post-settlement payout leakage.
+
+**Arbitrage-induced information transfer**: A sophisticated participant who trades correlated instruments on other venues (Polymarket, Hyperliquid) may involuntarily transfer signal across markets through their aggregate portfolio behavior.
+
+These effects operate across epochs and markets. They do not reintroduce intra-epoch directional visibility within a single clearing window — the $P_t^{\text{dir}} = \emptyset$ guarantee holds unconditionally for each epoch in isolation. Cross-market inference is an external-analyst problem operating at a higher level of abstraction than the mechanism's formal scope.
+
+### 6.5 Relation to Prior Work on Information Aggregation
 
 Kyle (1985) models strategic informed trading under continuous market-making and demonstrates that information is impounded gradually through trading. Glosten and Milgrom (1985) analyze the bid-ask spread as an adverse selection cost — market makers widen spreads in response to the risk of trading against informed participants.
 
 Confidential Batch Clearing disrupts the information revelation channel that both models assume. If directional choice is sealed during accumulation, neither the momentum cascade (Kyle) nor the adverse selection response (Glosten-Milgrom) can occur within the epoch. The clearing price is set once, from the sealed aggregate — there is no sequential revelation process for strategic agents to exploit.
+
+The mechanism does not attempt to eliminate informational asymmetry; it modifies the observability pathway through which information propagates into price formation. Participants with superior private signals still have an advantage — their edge is expressed in the sealed aggregate, not suppressed. The change is structural: information enters the price record once, collectively, at epoch close, rather than continuously through each individual action.
 
 This is not equivalent to eliminating private information from markets. Participants still have private signals; they still bet on them. The mechanism changes *when and how* that information enters the public record, not whether it enters.
 

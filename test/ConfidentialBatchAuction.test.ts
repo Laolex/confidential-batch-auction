@@ -117,8 +117,13 @@ describe("ConfidentialBatchAuction", function () {
     const tx = await contract
       .connect(owner)
       .createMarket("Will BTC close above $100k on Dec 31?", BigInt(durationSeconds));
-    await tx.wait();
-    return 0n;
+    const receipt = await tx.wait();
+    const ev = receipt.logs
+      .map((l: any) => {
+        try { return contract.interface.parseLog(l); } catch { return null; }
+      })
+      .find((e: any) => e && e.name === "MarketCreated");
+    return ev ? BigInt(ev.args.marketId) : 0n;
   }
 
   async function timeTravel(seconds: number) {

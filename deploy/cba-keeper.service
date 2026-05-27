@@ -1,0 +1,24 @@
+[Unit]
+Description=CBA Keeper — automated pool reveal + payout settler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=laolex
+WorkingDirectory=/home/laolex/confidential-batch-auction-keeper
+EnvironmentFile=/home/laolex/confidential-batch-auction-keeper/.env
+
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=15s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cba-keeper
+
+# Prevent hammering the RPC on hard crash loops
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Install]
+WantedBy=multi-user.target

@@ -453,7 +453,7 @@ Winners split the entire epoch pool (including loser ETH) proportional to their 
 ### 4.6 Deployment
 
 **Network**: Ethereum Sepolia testnet  
-**Contract**: `0xf6Fe1ce7d93d9F92faa8B997F23cB7a324509554`  
+**Contract**: `0x1Fe1Dc91396ECBEF7e2B59643A94D2C9277b9fd6`  
 **fhEVM version**: `@fhevm/solidity ^0.11.1`  
 **Relayer SDK**: `@zama-fhe/relayer-sdk ^0.4.1`
 

@@ -11,8 +11,10 @@
 
 import { ethers } from "ethers";
 
-const WEEK   = 60 * 60 * 24 * 7;
-const TWO_WEEKS = WEEK * 2;
+const FOUR_HOURS = 60 * 60 * 4;
+const DAY        = 60 * 60 * 24;
+const WEEK       = 60 * 60 * 24 * 7;
+const TWO_WEEKS  = WEEK * 2;
 
 // Chainlink feeds on Sepolia (8 decimal USD)
 const FEEDS = {
@@ -34,11 +36,22 @@ interface DemoSlot {
 }
 
 const DEMO_SLOTS: DemoSlot[] = [
-  { question: "Will ETH close above $2,500 at epoch end?",   feed: FEEDS.ETH,  strike: toFeedUnits(2500),   duration: TWO_WEEKS },
-  { question: "Will ETH close above $3,500 at epoch end?",   feed: FEEDS.ETH,  strike: toFeedUnits(3500),   duration: TWO_WEEKS },
-  { question: "Will BTC close above $90,000 at epoch end?",  feed: FEEDS.BTC,  strike: toFeedUnits(90000),  duration: TWO_WEEKS },
-  { question: "Will BTC close above $110,000 at epoch end?", feed: FEEDS.BTC,  strike: toFeedUnits(110000), duration: TWO_WEEKS },
-  { question: "Will LINK close above $15 at epoch end?",     feed: FEEDS.LINK, strike: toFeedUnits(15),     duration: TWO_WEEKS },
+  // ── 2-week markets ───────────────────────────────────────────────────────────
+  { question: "Will ETH close above $2,500 at epoch end?",    feed: FEEDS.ETH,  strike: toFeedUnits(2500),   duration: TWO_WEEKS },
+  { question: "Will ETH close above $3,500 at epoch end?",    feed: FEEDS.ETH,  strike: toFeedUnits(3500),   duration: TWO_WEEKS },
+  { question: "Will BTC close above $90,000 at epoch end?",   feed: FEEDS.BTC,  strike: toFeedUnits(90000),  duration: TWO_WEEKS },
+  { question: "Will BTC close above $110,000 at epoch end?",  feed: FEEDS.BTC,  strike: toFeedUnits(110000), duration: TWO_WEEKS },
+  { question: "Will LINK close above $15 at epoch end?",      feed: FEEDS.LINK, strike: toFeedUnits(15),     duration: TWO_WEEKS },
+
+  // ── Daily markets ────────────────────────────────────────────────────────────
+  { question: "Will ETH close above $2,600 in 24 hours?",     feed: FEEDS.ETH,  strike: toFeedUnits(2600),   duration: DAY },
+  { question: "Will BTC close above $105,000 in 24 hours?",   feed: FEEDS.BTC,  strike: toFeedUnits(105000), duration: DAY },
+  { question: "Will LINK close above $17 in 24 hours?",       feed: FEEDS.LINK, strike: toFeedUnits(17),     duration: DAY },
+
+  // ── 4-hour markets ───────────────────────────────────────────────────────────
+  { question: "Will ETH close above $2,450 in 4 hours?",      feed: FEEDS.ETH,  strike: toFeedUnits(2450),   duration: FOUR_HOURS },
+  { question: "Will BTC close above $98,000 in 4 hours?",     feed: FEEDS.BTC,  strike: toFeedUnits(98000),  duration: FOUR_HOURS },
+  { question: "Will LINK close above $14 in 4 hours?",        feed: FEEDS.LINK, strike: toFeedUnits(14),     duration: FOUR_HOURS },
 ];
 
 // Minimal ABI additions for refresh

@@ -8,8 +8,9 @@ import { refreshDemoMarkets } from "./refresh.js";
 
 const POLL_MS          = 30_000;        // 30 s between sweeps
 const REFRESH_INTERVAL = 6 * 60 * 60;  // 6 hours in seconds — how often to check demo slots
-const BLOCK_RANGE      = 500;           // max blocks per query
+const BLOCK_RANGE      = 10;            // Alchemy free tier max blocks per eth_getLogs request
 const DEPLOY_BLOCK     = 10_940_944;    // contract deployment block — oracle backfill start
+const FALLBACK_RPC     = "https://ethereum-sepolia-rpc.publicnode.com";
 
 function requireEnv(key: string): string {
   const v = process.env[key];
@@ -172,7 +173,6 @@ async function main() {
   const rpcUrl     = requireEnv("SEPOLIA_RPC_URL");
   const privateKey = requireEnv("KEEPER_PRIVATE_KEY");
 
-  const FALLBACK_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
   const provider = new ethers.FallbackProvider([
     { provider: new ethers.JsonRpcProvider(rpcUrl),        priority: 1, weight: 1 },
     { provider: new ethers.JsonRpcProvider(FALLBACK_RPC),  priority: 2, weight: 1 },
@@ -202,16 +202,20 @@ async function main() {
     log(`resuming from block ${lastBlock}`);
   }
 
-  // Backfill: scan from deploy block to lastBlock for any oracle markets created before this run
+  // Backfill: scan from deploy block to lastBlock for any oracle markets created before this run.
+  // Uses publicnode directly to avoid Alchemy free-tier rate limits on rapid sequential queries.
   if (oracleMarketIds.size === 0) {
     log(`backfilling oracle markets from block ${DEPLOY_BLOCK}…`);
+    const backfillProvider = new ethers.JsonRpcProvider(FALLBACK_RPC);
+    const backfillContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, backfillProvider);
     for (let b = DEPLOY_BLOCK; b <= lastBlock; b += BLOCK_RANGE) {
       const to = Math.min(b + BLOCK_RANGE - 1, lastBlock);
-      const logs = await contract.queryFilter(contract.filters.MarketCreatedWithOracle(), b, to);
+      const logs = await backfillContract.queryFilter(backfillContract.filters.MarketCreatedWithOracle(), b, to);
       for (const ev of logs) {
         const id = Number((ev as ethers.EventLog).args.marketId);
         oracleMarketIds.add(id);
       }
+      await sleep(50);
     }
     if (oracleMarketIds.size > 0) {
       log(`backfill found ${oracleMarketIds.size} oracle market(s): [${[...oracleMarketIds].join(", ")}]`);

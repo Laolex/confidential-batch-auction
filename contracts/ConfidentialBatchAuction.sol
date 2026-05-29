@@ -16,15 +16,19 @@ interface AggregatorV3Interface {
 }
 
 /// @dev Minimal interface for ERC-7984 confidential token (cUSDC on Sepolia).
-///      confidentialTransferFrom takes an external encrypted amount + proof — the
-///      token contract decodes it via FHE.fromExternal internally.
-///      confidentialTransfer sends an already-decoded euint64 handle.
+///
+///      Design: CBA decodes both encSide and encAmount via FHE.fromExternal in its
+///      own execution context (single inputProof tied to the CBA contract address).
+///      The decoded euint64 handle is then passed to the token contract — no second
+///      proof is needed because the handle is already a verified ciphertext.
+///
+///      confidentialTransferFrom — receives a pre-decoded euint64 handle from caller.
+///      confidentialTransfer    — receives a pre-computed euint64 payout handle.
 interface IConfidentialUSDC {
     function confidentialTransferFrom(
         address from,
         address to,
-        externalEuint64 encryptedAmount,
-        bytes calldata inputProof
+        euint64 amount          // pre-decoded by caller in caller's FHE context
     ) external returns (euint64);
 
     function confidentialTransfer(
@@ -58,6 +62,12 @@ contract ConfidentialBatchAuction is ZamaEthereumConfig, ReentrancyGuard {
 
     // Deployed cUSDC on Sepolia — ERC7984ERC20Wrapper wrapping USDC
     address public constant CUSDC_TOKEN = 0xfDBFC62F97A7988515a2684fA427d449fA7a6BAe;
+
+    /// @dev Returns the token address to use for token markets.
+    ///      Virtual so test harness can override with a mock address.
+    function _tokenAddress() internal view virtual returns (address) {
+        return CUSDC_TOKEN;
+    }
 
     // ──────────────────────────────────────────────────────────────────────
     // Data structures
@@ -169,8 +179,8 @@ contract ConfidentialBatchAuction is ZamaEthereumConfig, ReentrancyGuard {
     ) external returns (uint256 marketId) {
         require(bytes(question).length > 0, "Empty question");
         require(epochDuration >= 60, "Epoch too short");
-        marketId = _initMarket(question, epochDuration, true, CUSDC_TOKEN);
-        emit TokenMarketCreated(marketId, msg.sender, question, markets[marketId].epochStart, markets[marketId].epochEnd, CUSDC_TOKEN);
+        marketId = _initMarket(question, epochDuration, true, _tokenAddress());
+        emit TokenMarketCreated(marketId, msg.sender, question, markets[marketId].epochStart, markets[marketId].epochEnd, _tokenAddress());
     }
 
     function createTokenMarketWithOracle(
@@ -183,12 +193,12 @@ contract ConfidentialBatchAuction is ZamaEthereumConfig, ReentrancyGuard {
         require(epochDuration >= 60, "Epoch too short");
         require(priceFeed != address(0), "Invalid feed address");
         require(strikePrice > 0, "Strike price must be positive");
-        marketId = _initMarket(question, epochDuration, true, CUSDC_TOKEN);
+        marketId = _initMarket(question, epochDuration, true, _tokenAddress());
         Market storage m = markets[marketId];
         m.priceFeed   = priceFeed;
         m.strikePrice = strikePrice;
         m.useOracle   = true;
-        emit TokenMarketCreatedWithOracle(marketId, msg.sender, question, m.epochStart, m.epochEnd, CUSDC_TOKEN, priceFeed, strikePrice);
+        emit TokenMarketCreatedWithOracle(marketId, msg.sender, question, m.epochStart, m.epochEnd, _tokenAddress(), priceFeed, strikePrice);
     }
 
     function _initMarket(
@@ -287,17 +297,19 @@ contract ConfidentialBatchAuction is ZamaEthereumConfig, ReentrancyGuard {
         require(block.timestamp < m.epochEnd, "Epoch closed");
         require(!positions[marketId][msg.sender].exists, "Already bet");
 
-        // Decode side locally
-        euint8 side = FHE.fromExternal(externalEuint8.wrap(encSide), inputProof);
+        // Decode both handles in CBA context — one inputProof covers both handles
+        // from a single createEncryptedInput().add8(side).add64(amount).encrypt() call.
+        euint8  side = FHE.fromExternal(externalEuint8.wrap(encSide),   inputProof);
+        euint64 amt  = FHE.fromExternal(externalEuint64.wrap(encAmount), inputProof);
         FHE.allowThis(side);
         FHE.allow(side, msg.sender);
+        FHE.allowThis(amt);
 
-        // Transfer cUSDC from user to contract — token contract decodes encAmount internally
+        // Grant the token contract transient permission to use the decoded handle,
+        // then transfer — no second proof needed (handle already verified above).
+        FHE.allowTransient(amt, m.token);
         euint64 received = IConfidentialUSDC(m.token).confidentialTransferFrom(
-            msg.sender,
-            address(this),
-            externalEuint64.wrap(encAmount),
-            inputProof
+            msg.sender, address(this), amt
         );
         FHE.allowThis(received);
         FHE.allow(received, msg.sender);
@@ -521,8 +533,8 @@ contract ConfidentialBatchAuction is ZamaEthereumConfig, ReentrancyGuard {
 
         pos.claimed = true;
 
-        // Grant token contract permission to move the payout handle, then transfer
-        FHE.allow(encPayout, m.token);
+        // Transient permission for same-tx cross-contract call
+        FHE.allowTransient(encPayout, m.token);
         IConfidentialUSDC(m.token).confidentialTransfer(msg.sender, encPayout);
 
         emit TokenPayoutClaimed(marketId, msg.sender);

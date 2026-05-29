@@ -330,7 +330,7 @@ describe("ConfidentialBatchAuction", function () {
     await doPoolReveal(contract, marketId);
     await expect(
       contract.connect(alice).requestPayout(marketId),
-    ).to.be.revertedWith("No position");
+    ).to.be.revertedWith("No ETH position");
   });
 
   // ── 15. clearingPrice is correct after pool reveal ────────────────────────

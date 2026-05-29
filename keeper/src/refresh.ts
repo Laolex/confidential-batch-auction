@@ -125,8 +125,10 @@ export async function refreshDemoMarkets(
       log(`[refresh] created market gas=${receipt.gasUsed} slot=${key} ✓`);
       created++;
 
-      // Don't hammer the RPC
-      await new Promise((r) => setTimeout(r, 3_000));
+      // Wait >1 full Sepolia block (~12s) between creations. Each market init calls
+      // FHE.asEuint64 twice; back-to-back creations exhaust the per-block FHE handle
+      // budget on the Zama co-processor, causing silent reverts on the 4th–5th market.
+      await new Promise((r) => setTimeout(r, 15_000));
     } catch (e) {
       log(`[refresh] failed to create market for slot ${key}: ${(e as Error).message}`);
     }

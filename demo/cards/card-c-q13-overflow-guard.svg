@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#050911"/>
+  <rect x="0" y="0" width="1920" height="6" fill="#E0A82E"/>
+  <!-- header -->
+  <text x="120" y="130" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="40" font-weight="bold" fill="#E0A82E" letter-spacing="4">PRI</text>
+  <text x="235" y="118" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="19" fill="#6B7893" letter-spacing="3">PREDICTION</text>
+  <text x="235" y="140" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="19" fill="#6B7893" letter-spacing="3">MARKETS</text>
+  <text x="1800" y="130" text-anchor="end" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="22" fill="#6B7893" letter-spacing="2">3 / 3 · TECHNICAL HIGHLIGHT</text>
+  <line x1="120" y1="175" x2="1800" y2="175" stroke="#1B2740" stroke-width="1.5"/>
+  <!-- kicker + title -->
+  <text x="120" y="270" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="26" fill="#4FD1C5" letter-spacing="6">FHE ARITHMETIC</text>
+  <text x="120" y="355" font-family="'DejaVu Sans','Helvetica',sans-serif" font-size="66" font-weight="bold" fill="#ECE7DC">Q13 fixed-point overflow guard</text>
+  <!-- code panel -->
+  <rect x="110" y="410" width="1700" height="470" rx="14" fill="#0B121F" stroke="#1B2740" stroke-width="1.5"/>
+  <circle cx="150" cy="450" r="9" fill="#E0555A"/><circle cx="182" cy="450" r="9" fill="#E0A82E"/><circle cx="214" cy="450" r="9" fill="#4FD1C5"/>
+  <text x="150" y="500" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="29" xml:space="preserve"><tspan fill="#5B6a86">// euint64 multiply wraps mod 2^64 — guard the product</tspan></text>
+<text x="150" y="548" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="29" xml:space="preserve"><tspan fill="#7AA2F7">if</tspan><tspan fill="#ECE7DC"> (winPool == </tspan><tspan fill="#FF9E64">0</tspan><tspan fill="#ECE7DC">) encPayout = </tspan><tspan fill="#E0A82E">FHE</tspan><tspan fill="#ECE7DC">.asEuint64(</tspan><tspan fill="#FF9E64">0</tspan><tspan fill="#ECE7DC">);</tspan></text>
+<text x="150" y="596" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="29" xml:space="preserve"><tspan fill="#7AA2F7">else if</tspan><tspan fill="#ECE7DC"> (distributable &lt;= </tspan><tspan fill="#FF9E64">MAX</tspan><tspan fill="#ECE7DC"> / winPool)</tspan></text>
+<text x="150" y="644" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="29" xml:space="preserve"><tspan fill="#ECE7DC">    encPayout = </tspan><tspan fill="#E0A82E">FHE</tspan><tspan fill="#ECE7DC">.div(</tspan><tspan fill="#E0A82E">FHE</tspan><tspan fill="#ECE7DC">.mul(winStake, distributable), winPool);</tspan></text>
+<text x="150" y="692" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="29" xml:space="preserve"><tspan fill="#7AA2F7">else</tspan><tspan fill="#ECE7DC"> {</tspan><tspan fill="#5B6a86">                          // Q13 fixed-point path</tspan></text>
+<text x="150" y="740" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="29" xml:space="preserve"><tspan fill="#7AA2F7">    uint256</tspan><tspan fill="#ECE7DC"> ratioQ13 = (distributable &lt;&lt; </tspan><tspan fill="#FF9E64">13</tspan><tspan fill="#ECE7DC">) / winPool;</tspan></text>
+<text x="150" y="788" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="29" xml:space="preserve"><tspan fill="#ECE7DC">    encPayout = </tspan><tspan fill="#E0A82E">FHE</tspan><tspan fill="#ECE7DC">.shr(</tspan><tspan fill="#E0A82E">FHE</tspan><tspan fill="#ECE7DC">.mul(winStake, ratioQ13), </tspan><tspan fill="#FF9E64">13</tspan><tspan fill="#ECE7DC">);</tspan></text>
+<text x="150" y="836" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="29" xml:space="preserve"><tspan fill="#ECE7DC">}</tspan></text>
+  <!-- caption -->
+  <line x1="120" y1="945" x2="1800" y2="945" stroke="#1B2740" stroke-width="1.5"/>
+  <text x="120" y="1005" font-family="'DejaVu Sans','Helvetica',sans-serif" font-size="28" fill="#6B7893">Correct FHE math under a 64-bit ceiling — precision cost bounded below 0.013%.</text>
+  <text x="1800" y="1052" text-anchor="end" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="22" fill="#E0A82E">pri-markets.vercel.app</text>
+</svg>

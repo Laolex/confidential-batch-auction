@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#050911"/>
+  <rect x="0" y="0" width="1920" height="6" fill="#E0A82E"/>
+  <text x="150" y="200" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="40" font-weight="bold" fill="#E0A82E" letter-spacing="4">PRI</text>
+  <text x="265" y="188" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="19" fill="#6B7893" letter-spacing="3">PREDICTION</text>
+  <text x="265" y="210" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="19" fill="#6B7893" letter-spacing="3">MARKETS</text>
+  <text x="150" y="340" font-family="'DejaVu Sans','Helvetica',sans-serif" font-size="70" font-weight="bold" fill="#ECE7DC">Front-running,</text>
+  <text x="150" y="420" font-family="'DejaVu Sans','Helvetica',sans-serif" font-size="70" font-weight="bold" fill="#ECE7DC">structurally impossible.</text>
+  <text x="150" y="500" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="26" fill="#4FD1C5" letter-spacing="3">LIVE APP</text><text x="470" y="500" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="30" fill="#ECE7DC">pri-markets.vercel.app</text><line x1="150" y1="534" x2="1770" y2="534" stroke="#1B2740" stroke-width="1"/>
+<text x="150" y="610" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="26" fill="#4FD1C5" letter-spacing="3">CONTRACT</text><text x="470" y="610" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="30" fill="#ECE7DC">sepolia.etherscan.io · 0xF00573Fb…0d41C1</text><line x1="150" y1="644" x2="1770" y2="644" stroke="#1B2740" stroke-width="1"/>
+<text x="150" y="720" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="26" fill="#4FD1C5" letter-spacing="3">PROFILER</text><text x="470" y="720" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="30" fill="#ECE7DC">github.com/fhe-profiler/fhe-gas-profiler · npm</text><line x1="150" y1="754" x2="1770" y2="754" stroke="#1B2740" stroke-width="1"/>
+<text x="150" y="830" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="26" fill="#4FD1C5" letter-spacing="3">STACK</text><text x="470" y="830" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="30" fill="#ECE7DC">fhEVM · @fhevm/solidity 0.11 · cUSDC (ERC-7984) · React + Vite</text><line x1="150" y1="864" x2="1770" y2="864" stroke="#1B2740" stroke-width="1"/>
+  <line x1="150" y1="1000" x2="1770" y2="1000" stroke="#1B2740" stroke-width="1.5"/>
+  <text x="1770" y="1052" text-anchor="end" font-family="'DejaVu Sans Mono','Courier New',monospace" font-size="24" fill="#E0A82E">pri-markets.vercel.app</text>
+</svg>

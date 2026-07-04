@@ -64,7 +64,7 @@ permissionless, idempotent `sweepFees()`. The clearing price is stored in basis 
 
 ## Technical Highlights
 
-The differentiators, condensed. Full write-up with code in [`demo/TECHNICAL_HIGHLIGHTS.md`](demo/TECHNICAL_HIGHLIGHTS.md).
+The differentiators, condensed.
 
 1. **Side *and* amount sealed in one input proof** — `add8(side).add64(amount)`. Most "confidential"
    markets hide only the amount (or reveal direction at close); here the chain never sees a plaintext

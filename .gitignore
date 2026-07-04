@@ -18,3 +18,9 @@ frontend/.vercel/
 
 # Agent goal-ledger (execution memory, not product code)
 .agent/
+
+# demo production assets — keep only the pipeline image the README embeds
+/demo/*
+!/demo/cards/
+/demo/cards/*
+!/demo/cards/card-01-pipeline.png
